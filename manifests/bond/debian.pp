@@ -40,6 +40,13 @@
 #   Selects the transmit hash policy to use for slave selection
 #
 # @see https://wiki.debian.org/Bonding Debian Network Bonding
+# == Notes
+#
+# systemd-networkd and netplan need to be disabled or removed on
+# recent versions of Ubuntu at least, as they conflict with static
+# network configs in /etc/network/interfaces which this uses.
+#
+# == See also
 #
 define network::bond::debian (
   Array[String[1]]                        $slaves,
@@ -101,9 +108,17 @@ define network::bond::debian (
     options   => $opts,
   }
 
+  $opts_slave = merge( {
+      'bond-master' => $name,
+    },
+    $slave_options
+  )
+
   network_config { $slaves:
-    ensure      => absent,
-    reconfigure => true,
-    before      => Network_config[$name],
+    ensure  => $ensure,
+    method  => 'manual',
+    onboot  => true,
+    hotplug => false,
+    options => $opts_slave,
   }
 }
